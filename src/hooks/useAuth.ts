@@ -1,5 +1,11 @@
-import { useState, useCallback } from 'react';
-import { currentUser, type User } from '@/data/mockUsers';
+import { useState, useCallback, useEffect } from 'react';
+import { 
+  loginUser, 
+  signupUser, 
+  logoutUser, 
+  getMe, 
+  type User 
+} from '@/lib/api';
 
 interface AuthState {
   user: User | null;
@@ -9,29 +15,57 @@ interface AuthState {
 
 export const useAuth = () => {
   const [authState, setAuthState] = useState<AuthState>({
-    user: currentUser, // Auto-login for demo
-    isAuthenticated: true,
-    isLoading: false,
+    user: null,
+    isAuthenticated: false,
+    isLoading: true, // Start loading to check auth status
   });
+
+  // Check authentication status on mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setAuthState({ user: null, isAuthenticated: false, isLoading: false });
+          return;
+        }
+        
+        const user = await getMe();
+        setAuthState({
+          user,
+          isAuthenticated: true,
+          isLoading: false,
+        });
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        localStorage.removeItem('token');
+        setAuthState({ user: null, isAuthenticated: false, isLoading: false });
+      }
+    };
+
+    checkAuth();
+  }, []);
 
   const login = useCallback(async (email: string, password: string) => {
     setAuthState(prev => ({ ...prev, isLoading: true }));
     
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    // Mock login - in real app, this would validate against backend
-    if (email && password) {
+    try {
+      const { user, token } = await loginUser({ email, password });
+      localStorage.setItem('token', token);
+      
       setAuthState({
-        user: currentUser,
+        user,
         isAuthenticated: true,
         isLoading: false,
       });
       return { success: true };
+    } catch (error: any) {
+      setAuthState(prev => ({ ...prev, isLoading: false }));
+      return { 
+        success: false, 
+        error: error.response?.data?.message || 'Invalid credentials' 
+      };
     }
-    
-    setAuthState(prev => ({ ...prev, isLoading: false }));
-    return { success: false, error: 'Invalid credentials' };
   }, []);
 
   const signup = useCallback(async (data: {
@@ -42,36 +76,45 @@ export const useAuth = () => {
   }) => {
     setAuthState(prev => ({ ...prev, isLoading: true }));
     
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Mock signup
-    const newUser: User = {
-      id: `usr_${Date.now()}`,
-      firstName: data.firstName,
-      lastName: data.lastName,
-      email: data.email,
-      role: 'user',
-      status: 'pending',
-      createdAt: new Date(),
-      lastLoginAt: new Date(),
-    };
-    
-    setAuthState({
-      user: newUser,
-      isAuthenticated: true,
-      isLoading: false,
-    });
-    
-    return { success: true };
+    try {
+      const fullName = `${data.firstName} ${data.lastName}`.trim();
+      const { user, token } = await signupUser({
+        fullName,
+        email: data.email,
+        password: data.password
+      });
+      
+      localStorage.setItem('token', token);
+      
+      setAuthState({
+        user,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+      
+      return { success: true };
+    } catch (error: any) {
+      setAuthState(prev => ({ ...prev, isLoading: false }));
+      return { 
+        success: false, 
+        error: error.response?.data?.message || 'Signup failed' 
+      };
+    }
   }, []);
 
-  const logout = useCallback(() => {
-    setAuthState({
-      user: null,
-      isAuthenticated: false,
-      isLoading: false,
-    });
+  const logout = useCallback(async () => {
+    try {
+      await logoutUser();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      localStorage.removeItem('token');
+      setAuthState({
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+      });
+    }
   }, []);
 
   return {

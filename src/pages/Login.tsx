@@ -8,9 +8,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/useAuth';
 
 export const LoginPage = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -40,13 +42,18 @@ export const LoginPage = () => {
     setError('');
     setIsLoading(true);
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    if (!email || !password) {
+      setError('Please fill in all fields');
+      setIsLoading(false);
+      return;
+    }
 
-    if (email && password) {
+    const result = await login(email, password);
+    
+    if (result.success) {
       navigate('/dashboard');
     } else {
-      setError('Please fill in all fields');
+      setError(result.error || 'Login failed');
       setIsLoading(false);
     }
   };
@@ -70,12 +77,12 @@ export const LoginPage = () => {
         >
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 mb-8">
-            <motion.div
-              className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg"
+            <motion.img
+              src="/image.png"
+              alt="Logo"
+              className="w-12 h-12 rounded-xl shadow-lg object-cover"
               whileHover={{ rotate: 10 }}
-            >
-              <span className="font-display text-xl text-primary-foreground">CR</span>
-            </motion.div>
+            />
             <span className="font-heading font-semibold text-2xl">Control Room</span>
           </Link>
 

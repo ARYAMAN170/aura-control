@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Filter, Users, UserCheck, UserX, Clock, TrendingUp, MoreVertical, Power, Trash2 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
@@ -8,8 +8,9 @@ import { StatusBadge } from '@/components/ui/StatusBadge';
 import { RoleBadge } from '@/components/ui/RoleBadge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { mockUsers, getUserStats, type User, type UserRole, type UserStatus } from '@/data/mockUsers';
+import { getAllUsers, updateUserStatus, getDashboardStats, type User, type DashboardStats } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -25,41 +26,78 @@ const itemVariants = {
 };
 
 export const AdminDashboard = () => {
-  const [users, setUsers] = useState(mockUsers);
+  const [users, setUsers] = useState<User[]>([]);
+  const [stats, setStats] = useState<DashboardStats>({
+    totalUsers: 0,
+    activeUsers: 0,
+    inactiveUsers: 0,
+    pendingUsers: 0,
+    newUsersThisMonth: 0
+  });
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState<UserRole | 'all'>('all');
-  const [statusFilter, setStatusFilter] = useState<UserStatus | 'all'>('all');
+  const [roleFilter, setRoleFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
-  const stats = getUserStats();
+  const isMobile = useIsMobile();
+  
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const usersResponse = await getAllUsers(1, 100);
+        if (usersResponse?.data) {
+          setUsers(usersResponse.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch users:', error);
+      }
+
+      try {
+        const statsResponse = await getDashboardStats();
+        if (statsResponse) {
+          setStats(statsResponse);
+        }
+      } catch (error) {
+        console.error('Failed to fetch stats:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = 
-      user.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesRole = roleFilter === 'all' || user.role === roleFilter;
     const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
     return matchesSearch && matchesRole && matchesStatus;
   });
 
-  const toggleUserStatus = (userId: string) => {
-    setUsers(prev => prev.map(u => 
-      u.id === userId 
-        ? { ...u, status: u.status === 'active' ? 'inactive' : 'active' as UserStatus }
-        : u
-    ));
+  const toggleUserStatus = async (userId: string, currentStatus: string) => {
+    try {
+      const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+      await updateUserStatus(userId, newStatus);
+      
+      setUsers(prev => prev.map(u => 
+        u._id === userId 
+          ? { ...u, status: newStatus }
+          : u
+      ));
+    } catch (error) {
+      console.error('Failed to update status:', error);
+    }
   };
 
-  const deleteUser = (userId: string) => {
-    setUsers(prev => prev.filter(u => u.id !== userId));
-  };
+  // Removed deleteUser as it's not in the API requirements
 
   const statCards = [
-    { label: 'Total Users', value: stats.total, icon: Users, color: 'primary', size: 'large' },
-    { label: 'Active', value: stats.active, icon: UserCheck, color: 'success', size: 'medium' },
-    { label: 'Inactive', value: stats.inactive, icon: UserX, color: 'muted', size: 'medium' },
-    { label: 'Pending', value: stats.pending, icon: Clock, color: 'warning', size: 'small' },
-    { label: 'New This Month', value: stats.recentSignups, icon: TrendingUp, color: 'secondary', size: 'small' },
+    { label: 'Total Users', value: stats.totalUsers, icon: Users, color: 'primary', size: 'large' },
+    { label: 'Active', value: stats.activeUsers, icon: UserCheck, color: 'success', size: 'medium' },
+    { label: 'Inactive', value: stats.inactiveUsers, icon: UserX, color: 'muted', size: 'medium' },
+    { label: 'Pending', value: stats.pendingUsers, icon: Clock, color: 'warning', size: 'small' },
+    { label: 'New This Month', value: stats.newUsersThisMonth, icon: TrendingUp, color: 'secondary', size: 'small' },
   ];
 
   return (
@@ -181,14 +219,14 @@ export const AdminDashboard = () => {
           <AnimatePresence mode="popLayout">
             {filteredUsers.map((user, i) => (
               <motion.div
-                key={user.id}
+                key={user._id}
                 layout
                 variants={itemVariants}
                 initial="hidden"
                 animate="visible"
                 exit={{ opacity: 0, scale: 0.8, rotate: 5 }}
                 transition={{ delay: i * 0.05 }}
-                onHoverStart={() => setHoveredCard(user.id)}
+                onHoverStart={() => setHoveredCard(user._id)}
                 onHoverEnd={() => setHoveredCard(null)}
               >
                 <GlassCard
@@ -204,15 +242,15 @@ export const AdminDashboard = () => {
                   {/* User info */}
                   <div className="flex items-start gap-4">
                     <UserAvatar
-                      userId={user.id}
-                      firstName={user.firstName}
-                      lastName={user.lastName}
+                      userId={user._id}
+                      firstName={user.fullName.split(' ')[0]}
+                      lastName={user.fullName.split(' ').slice(1).join(' ') || ''}
                       size="lg"
                       showCrown={user.role === 'admin'}
                     />
                     <div className="flex-1 min-w-0">
                       <h3 className="font-heading font-semibold text-foreground truncate" style={{ transform: 'rotate(-0.5deg)' }}>
-                        {user.firstName} {user.lastName}
+                        {user.fullName}
                       </h3>
                       <p className="text-xs font-mono text-muted-foreground truncate mt-1">
                         {user.email}
@@ -223,9 +261,9 @@ export const AdminDashboard = () => {
                     </div>
                   </div>
 
-                  {/* Action buttons - appear on hover */}
+                  {/* Action buttons - appear on hover or always on mobile */}
                   <AnimatePresence>
-                    {hoveredCard === user.id && (
+                    {(hoveredCard === user._id || isMobile) && (
                       <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -236,17 +274,9 @@ export const AdminDashboard = () => {
                           size="icon"
                           variant={user.status === 'active' ? 'outline' : 'default'}
                           className="w-8 h-8 rounded-full shadow-lg"
-                          onClick={() => toggleUserStatus(user.id)}
+                          onClick={() => toggleUserStatus(user._id, user.status)}
                         >
-                          <Power className="w-3 h-3" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="destructive"
-                          className="w-8 h-8 rounded-full shadow-lg"
-                          onClick={() => deleteUser(user.id)}
-                        >
-                          <Trash2 className="w-3 h-3" />
+                          {user.status === 'active' ? <Power className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
                         </Button>
                       </motion.div>
                     )}

@@ -19,11 +19,14 @@ export const AnimatedCounter = ({
   const [count, setCount] = useState(0);
   const ref = useRef<HTMLSpanElement>(null);
   const isInView = useInView(ref, { once: true, margin: '-50px' });
-  const hasAnimated = useRef(false);
+  const lastAnimatedValue = useRef<number | null>(null);
 
   useEffect(() => {
-    if (!isInView || hasAnimated.current) return;
-    hasAnimated.current = true;
+    if (!isInView) return;
+    
+    // Only animate if the value has changed
+    if (lastAnimatedValue.current === value) return;
+    lastAnimatedValue.current = value;
 
     const startTime = Date.now();
     const endTime = startTime + duration * 1000;

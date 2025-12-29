@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { UserAvatar } from '@/components/ui/UserAvatar';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/useAuth';
 
 interface PasswordStrength {
   score: number;
@@ -36,6 +37,7 @@ const checkPasswordStrength = (password: string): PasswordStrength => {
 
 export const SignupPage = () => {
   const navigate = useNavigate();
+  const { signup } = useAuth();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -74,12 +76,23 @@ export const SignupPage = () => {
     }
 
     setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 2000));
     
-    setShowConfetti(true);
-    setTimeout(() => {
-      navigate('/dashboard');
-    }, 1500);
+    const result = await signup({
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email,
+      password: formData.password
+    });
+
+    if (result.success) {
+      setShowConfetti(true);
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 1500);
+    } else {
+      setError(result.error || 'Signup failed');
+      setIsLoading(false);
+    }
   };
 
   const benefits = [
@@ -150,9 +163,7 @@ export const SignupPage = () => {
 
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 mb-6">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg">
-              <span className="font-display text-lg text-primary-foreground">CR</span>
-            </div>
+            <img src="/image.png" alt="Logo" className="w-10 h-10 rounded-xl shadow-lg object-cover" />
             <span className="font-heading font-semibold text-xl">Control Room</span>
           </Link>
 

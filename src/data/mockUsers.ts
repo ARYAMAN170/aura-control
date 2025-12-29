@@ -358,7 +358,7 @@ export const getUserStats = () => {
   // Recent signups (last 30 days)
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-  const recentSignups = mockUsers.filter(u => u.createdAt >= thirtyDaysAgo).length;
+  const newUsersThisMonth = mockUsers.filter(u => u.createdAt >= thirtyDaysAgo).length;
   
   return {
     total,
@@ -368,6 +368,6 @@ export const getUserStats = () => {
     admins,
     moderators,
     users,
-    recentSignups,
+    newUsersThisMonth,
   };
 };

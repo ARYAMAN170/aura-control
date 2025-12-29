@@ -5,7 +5,7 @@ import { Menu, X, LogOut, User, Settings, LayoutDashboard } from 'lucide-react';
 import { UserAvatar } from '@/components/ui/UserAvatar';
 import { RoleBadge } from '@/components/ui/RoleBadge';
 import { Button } from '@/components/ui/button';
-import { currentUser } from '@/data/mockUsers';
+import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 
 interface NavItem {
@@ -14,21 +14,22 @@ interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
 }
 
-const navItems: NavItem[] = [
-  { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-  { label: 'Profile', path: '/profile', icon: User },
-];
-
 export const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, isAuthenticated, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const isAuthenticated = true; // Mock auth state
+
+  const navItems: NavItem[] = [
+    ...(user?.role === 'admin' ? [{ label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard }] : []),
+    { label: 'Profile', path: '/profile', icon: User },
+  ];
 
   const activeIndex = navItems.findIndex(item => item.path === location.pathname);
 
   const handleLogout = () => {
+    logout();
     navigate('/login');
   };
 
@@ -50,9 +51,7 @@ export const Navbar = () => {
               whileHover={{ rotate: [-2, 2, 0] }}
               transition={{ duration: 0.3 }}
             >
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg">
-                <span className="font-display text-lg text-primary-foreground">CR</span>
-              </div>
+              <img src="/image.png" alt="Logo" className="w-10 h-10 rounded-lg shadow-lg object-cover" />
               <span className="hidden sm:block font-heading font-semibold text-xl text-foreground">
                 Control Room
               </span>
@@ -98,7 +97,7 @@ export const Navbar = () => {
           <div className="flex-1" />
 
           {/* Auth Section */}
-          {isAuthenticated ? (
+          {isAuthenticated && user ? (
             <div className="relative">
               <motion.button
                 onClick={() => setShowUserMenu(!showUserMenu)}
@@ -108,16 +107,16 @@ export const Navbar = () => {
               >
                 <div className="hidden sm:block text-right">
                   <p className="text-sm font-medium text-foreground">
-                    {currentUser.firstName} {currentUser.lastName}
+                    {user.fullName}
                   </p>
-                  <RoleBadge role={currentUser.role} showIcon={false} className="text-xs py-0.5 px-2" />
+                  <RoleBadge role={user.role} showIcon={false} className="text-xs py-0.5 px-2" />
                 </div>
                 <UserAvatar
-                  userId={currentUser.id}
-                  firstName={currentUser.firstName}
-                  lastName={currentUser.lastName}
+                  userId={user._id}
+                  firstName={user.fullName.split(' ')[0]}
+                  lastName={user.fullName.split(' ').slice(1).join(' ') || ''}
                   size="md"
-                  showCrown={currentUser.role === 'admin'}
+                  showCrown={user.role === 'admin'}
                 />
               </motion.button>
 

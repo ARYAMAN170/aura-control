@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   User, Mail, Calendar, MapPin, Building, Clock, Shield, 
@@ -11,9 +11,12 @@ import { RoleBadge } from '@/components/ui/RoleBadge';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { currentUser } from '@/data/mockUsers';
+import { useAuth } from '@/hooks/useAuth';
+import { updateProfile, changePassword } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { format, formatDistanceToNow } from 'date-fns';
+import { toast } from 'sonner'; // Assuming sonner is used for toasts based on package.json/file list
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface EditableFieldProps {
   label: string;
@@ -27,6 +30,7 @@ const EditableField = ({ label, value, icon: Icon, onSave, type = 'text' }: Edit
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(value);
   const [isHovered, setIsHovered] = useState(false);
+  const isMobile = useIsMobile();
 
   const handleSave = () => {
     onSave(editValue);
@@ -103,7 +107,7 @@ const EditableField = ({ label, value, icon: Icon, onSave, type = 'text' }: Edit
                 onClick={() => setIsEditing(true)}
                 className={cn(
                   "p-2 rounded-lg hover:bg-muted/50 transition-all",
-                  isHovered ? "opacity-100" : "opacity-0"
+                  isHovered || isMobile ? "opacity-100" : "opacity-0"
                 )}
                 whileHover={{ scale: 1.1, rotate: 15 }}
                 whileTap={{ scale: 0.9 }}
@@ -119,22 +123,71 @@ const EditableField = ({ label, value, icon: Icon, onSave, type = 'text' }: Edit
 };
 
 export const ProfilePage = () => {
-  const [user, setUser] = useState(currentUser);
+  const { user, isLoading } = useAuth();
   const [showPasswordSection, setShowPasswordSection] = useState(false);
   const [passwords, setPasswords] = useState({ current: '', new: '', confirm: '' });
   const [showPasswords, setShowPasswords] = useState({ current: false, new: false, confirm: false });
 
-  const updateField = (field: keyof typeof user) => (value: string) => {
-    setUser(prev => ({ ...prev, [field]: value }));
+  if (isLoading || !user) {
+    return <div>Loading...</div>; // Or a proper loading spinner
+  }
+
+  const firstName = user.fullName.split(' ')[0];
+  const lastName = user.fullName.split(' ').slice(1).join(' ') || '';
+
+  const handleUpdateProfile = async (field: 'firstName' | 'lastName' | 'email', value: string) => {
+    try {
+      let newFullName = user.fullName;
+      let newEmail = user.email;
+
+      if (field === 'firstName') {
+        newFullName = `${value} ${lastName}`.trim();
+      } else if (field === 'lastName') {
+        newFullName = `${firstName} ${value}`.trim();
+      } else if (field === 'email') {
+        newEmail = value;
+      }
+
+      await updateProfile({ fullName: newFullName, email: newEmail });
+      toast.success('Profile updated successfully');
+      // Note: useAuth should ideally update the user state automatically or expose a refresh method.
+      // For now, we assume a page reload or re-fetch might be needed, 
+      // but since we don't have a setUser exposed from useAuth, we rely on the API update.
+      // A better approach would be to have useAuth expose a method to update local user state.
+      window.location.reload(); 
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+      toast.error('Failed to update profile');
+    }
+  };
+
+  const handlePasswordChange = async () => {
+    if (passwords.new !== passwords.confirm) {
+      toast.error('New passwords do not match');
+      return;
+    }
+
+    try {
+      await changePassword({
+        currentPassword: passwords.current,
+        newPassword: passwords.new
+      });
+      toast.success('Password changed successfully');
+      setPasswords({ current: '', new: '', confirm: '' });
+      setShowPasswordSection(false);
+    } catch (error) {
+      console.error('Failed to change password:', error);
+      toast.error('Failed to change password');
+    }
   };
 
   // Calculate profile completion
-  const fields = [user.firstName, user.lastName, user.email, user.department, user.location];
+  const fields = [firstName, lastName, user.email];
   const completedFields = fields.filter(Boolean).length;
   const completionPercentage = (completedFields / fields.length) * 100;
 
   // Calculate days since joined
-  const daysSinceJoined = Math.floor((Date.now() - user.createdAt.getTime()) / (1000 * 60 * 60 * 24));
+  const daysSinceJoined = Math.floor((Date.now() - new Date(user.createdAt).getTime()) / (1000 * 60 * 60 * 24));
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -169,16 +222,16 @@ export const ProfilePage = () => {
                 
                 <div className="relative">
                   <UserAvatar
-                    userId={user.id}
-                    firstName={user.firstName}
-                    lastName={user.lastName}
+                    userId={user._id}
+                    firstName={firstName}
+                    lastName={lastName}
                     size="xl"
                     showCrown={user.role === 'admin'}
                     className="mx-auto mb-4"
                   />
                   
                   <h2 className="text-2xl font-heading font-bold mb-1">
-                    {user.firstName} {user.lastName}
+                    {firstName} {lastName}
                   </h2>
                   <p className="text-sm text-muted-foreground font-mono mb-4">{user.email}</p>
                   
@@ -225,17 +278,6 @@ export const ProfilePage = () => {
                     <p className="font-semibold">{daysSinceJoined} days</p>
                   </div>
                 </motion.div>
-
-                <motion.div
-                  className="flex items-center gap-3 p-3 rounded-lg bg-muted/30"
-                  whileHover={{ x: 4 }}
-                >
-                  <Clock className="w-5 h-5 text-secondary" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">Last active</p>
-                    <p className="font-semibold">{formatDistanceToNow(user.lastLoginAt, { addSuffix: true })}</p>
-                  </div>
-                </motion.div>
               </GlassCard>
             </motion.div>
 
@@ -251,40 +293,28 @@ export const ProfilePage = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <EditableField
                     label="First Name"
-                    value={user.firstName}
+                    value={firstName}
                     icon={User}
-                    onSave={updateField('firstName')}
+                    onSave={(val) => handleUpdateProfile('firstName', val)}
                   />
                   <EditableField
                     label="Last Name"
-                    value={user.lastName}
+                    value={lastName}
                     icon={User}
-                    onSave={updateField('lastName')}
+                    onSave={(val) => handleUpdateProfile('lastName', val)}
                   />
                   <EditableField
                     label="Email Address"
                     value={user.email}
                     icon={Mail}
-                    onSave={updateField('email')}
+                    onSave={(val) => handleUpdateProfile('email', val)}
                     type="email"
-                  />
-                  <EditableField
-                    label="Department"
-                    value={user.department || 'Not set'}
-                    icon={Building}
-                    onSave={updateField('department' as any)}
-                  />
-                  <EditableField
-                    label="Location"
-                    value={user.location || 'Not set'}
-                    icon={MapPin}
-                    onSave={updateField('location' as any)}
                   />
                   <div>
                     <p className="text-xs text-muted-foreground mb-1">Joined</p>
                     <div className="flex items-center gap-3">
                       <Calendar className="w-4 h-4 text-muted-foreground" />
-                      <span className="font-medium">{format(user.createdAt, 'MMMM d, yyyy')}</span>
+                      <span className="font-medium">{format(new Date(user.createdAt), 'MMMM d, yyyy')}</span>
                     </div>
                   </div>
                 </div>
@@ -340,7 +370,7 @@ export const ProfilePage = () => {
                           </div>
                         ))}
 
-                        <Button className="w-full sm:w-auto">
+                        <Button className="w-full sm:w-auto" onClick={handlePasswordChange}>
                           Update Password
                         </Button>
                       </div>
