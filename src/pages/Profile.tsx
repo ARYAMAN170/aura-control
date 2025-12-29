@@ -123,8 +123,8 @@ const EditableField = ({ label, value, icon: Icon, onSave, type = 'text' }: Edit
 };
 
 export const ProfilePage = () => {
-  const { user, isLoading } = useAuth();
-  const [showPasswordSection, setShowPasswordSection] = useState(false);
+  const { user, isLoading, updateUser } = useAuth();
+  const [showPasswordSection, setShowPasswordSection] = useState(true);
   const [passwords, setPasswords] = useState({ current: '', new: '', confirm: '' });
   const [showPasswords, setShowPasswords] = useState({ current: false, new: false, confirm: false });
 
@@ -148,13 +148,9 @@ export const ProfilePage = () => {
         newEmail = value;
       }
 
-      await updateProfile({ fullName: newFullName, email: newEmail });
+      const updatedUser = await updateProfile({ fullName: newFullName, email: newEmail });
+      updateUser(updatedUser);
       toast.success('Profile updated successfully');
-      // Note: useAuth should ideally update the user state automatically or expose a refresh method.
-      // For now, we assume a page reload or re-fetch might be needed, 
-      // but since we don't have a setUser exposed from useAuth, we rely on the API update.
-      // A better approach would be to have useAuth expose a method to update local user state.
-      window.location.reload(); 
     } catch (error) {
       console.error('Failed to update profile:', error);
       toast.error('Failed to update profile');
@@ -328,7 +324,7 @@ export const ProfilePage = () => {
                 >
                   <h3 className="font-heading font-semibold text-lg flex items-center gap-2">
                     <Shield className="w-5 h-5 text-primary" />
-                    Security
+                    Security & Password
                   </h3>
                   <motion.div
                     animate={{ rotate: showPasswordSection ? 180 : 0 }}
