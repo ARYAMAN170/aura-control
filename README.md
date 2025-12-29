@@ -1,73 +1,51 @@
-# Welcome to your Lovable project
+# Control Room - Frontend
 
-## Project info
+## 📖 Project Overview
+Control Room is the client-side interface for the Mini User Management System built for the Purple Merit Technologies assessment. It provides a responsive interface for users to manage their profiles and for administrators to manage user access via a centralized dashboard.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+**Live Deployment:** [Insert Vercel/Netlify Link Here]
+**Walkthrough Video:** [Insert Video Link Here]
 
-## How can I edit this code?
+## 🚀 Tech Stack
+* **Framework:** React.js (Hooks)
+* **Routing:** React Router DOM
+* **HTTP Client:** Axios
+* **Styling:** CSS Modules / Tailwind CSS
+* **Deployment:** Vercel / Netlify
 
-There are several ways of editing your application.
+## ✨ Features
+* **Authentication:**
+    * Login & Signup forms with client-side validation (Email format, Password strength).
+    * Redirects based on authentication status.
+* **Admin Dashboard:**
+    * Tabular view of all users with columns: Email, Full Name, Role, Status, Actions.
+    * **Pagination:** Displays 10 users per page.
+    * **User Management:** Activate/Deactivate users with confirmation dialogs.
+* **User Profile:**
+    * View and edit Full Name and Email.
+    * Change Password functionality.
+* **Role-Based Access Control (RBAC):**
+    * Protected routes ensuring only Admins can access the dashboard.
+    * User-specific navigation.
 
-**Use Lovable**
+## 🛠️ Setup Instructions
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+### 1. Prerequisites
+* Node.js (v18+)
+* npm
 
-Changes made via Lovable will be committed automatically to this repo.
+### 2. Installation
+1.  Navigate to the frontend directory:
+    ```bash
+    cd frontend
+    ```
+2.  Install dependencies:
+    ```bash
+    npm install
+    ```
 
-**Use your preferred IDE**
+### 3. Environment Variables
+Create a `.env` file in the `frontend` root. **Do not include actual values in the repository.**
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+```env
+VITE_API_BASE_URL=  # URL of the deployed backend (e.g., [https://your-backend.onrender.com/api/v1](https://your-backend.onrender.com/api/v1))
