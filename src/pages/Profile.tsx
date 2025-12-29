@@ -183,7 +183,11 @@ export const ProfilePage = () => {
   const completionPercentage = (completedFields / fields.length) * 100;
 
   // Calculate days since joined
-  const daysSinceJoined = Math.floor((Date.now() - new Date(user.createdAt).getTime()) / (1000 * 60 * 60 * 24));
+  const joinedDate = new Date(user.createdAt);
+  const isValidDate = !isNaN(joinedDate.getTime());
+  const daysSinceJoined = isValidDate 
+    ? Math.floor((Date.now() - joinedDate.getTime()) / (1000 * 60 * 60 * 24))
+    : 0;
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -310,7 +314,9 @@ export const ProfilePage = () => {
                     <p className="text-xs text-muted-foreground mb-1">Joined</p>
                     <div className="flex items-center gap-3">
                       <Calendar className="w-4 h-4 text-muted-foreground" />
-                      <span className="font-medium">{format(new Date(user.createdAt), 'MMMM d, yyyy')}</span>
+                      <span className="font-medium">
+                        {isValidDate ? format(joinedDate, 'MMMM d, yyyy') : 'N/A'}
+                      </span>
                     </div>
                   </div>
                 </div>
