@@ -32,7 +32,7 @@ export const RoleBadge = ({
   showIcon = true,
   className,
 }: RoleBadgeProps) => {
-  const config = roleConfig[role];
+  const config = roleConfig[role] || roleConfig.user;
   const Icon = config.icon;
 
   return (

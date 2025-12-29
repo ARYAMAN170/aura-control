@@ -38,7 +38,7 @@ export const StatusBadge = ({
   size = 'md',
   className,
 }: StatusBadgeProps) => {
-  const config = statusConfig[status];
+  const config = statusConfig[status] || statusConfig.inactive;
 
   return (
     <div className={cn('flex items-center gap-2', className)}>
