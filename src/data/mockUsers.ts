@@ -17,6 +17,7 @@ export interface User {
 
 // Generate unique gradient colors for avatars based on user id
 export const getAvatarGradient = (id: string): string => {
+  if (!id) return 'from-gray-400 to-gray-500';
   const gradients = [
     'from-cyan-400 to-blue-500',
     'from-purple-400 to-pink-500',

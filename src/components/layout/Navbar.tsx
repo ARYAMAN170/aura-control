@@ -113,8 +113,8 @@ export const Navbar = () => {
                 </div>
                 <UserAvatar
                   userId={user._id}
-                  firstName={user.fullName.split(' ')[0]}
-                  lastName={user.fullName.split(' ').slice(1).join(' ') || ''}
+                  firstName={(user.fullName || '').split(' ')[0]}
+                  lastName={(user.fullName || '').split(' ').slice(1).join(' ') || ''}
                   size="md"
                   showCrown={user.role === 'admin'}
                 />

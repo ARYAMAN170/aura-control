@@ -243,8 +243,8 @@ export const AdminDashboard = () => {
                   <div className="flex items-start gap-4">
                     <UserAvatar
                       userId={user._id}
-                      firstName={user.fullName.split(' ')[0]}
-                      lastName={user.fullName.split(' ').slice(1).join(' ') || ''}
+                      firstName={(user.fullName || '').split(' ')[0]}
+                      lastName={(user.fullName || '').split(' ').slice(1).join(' ') || ''}
                       size="lg"
                       showCrown={user.role === 'admin'}
                     />

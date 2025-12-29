@@ -132,8 +132,8 @@ export const ProfilePage = () => {
     return <div>Loading...</div>; // Or a proper loading spinner
   }
 
-  const firstName = user.fullName.split(' ')[0];
-  const lastName = user.fullName.split(' ').slice(1).join(' ') || '';
+  const firstName = (user.fullName || '').split(' ')[0];
+  const lastName = (user.fullName || '').split(' ').slice(1).join(' ') || '';
 
   const handleUpdateProfile = async (field: 'firstName' | 'lastName' | 'email', value: string) => {
     try {
